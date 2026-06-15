@@ -32,6 +32,12 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
     var latestLoadError: Error?
 
     var initialURL: URL?
+    /// A URL explicitly requested via `open(inline:)` (e.g. tapping a notification or deep link) that must take
+    /// priority over the default/restored URL. On cold start the webview begins blank and `loadActiveURLIfNeeded()`
+    /// (triggered by `viewWillAppear` and connectivity/connect notifications) can race ahead and overwrite the
+    /// requested URL with the default dashboard, discarding the notification's URL. Cleared once the requested URL
+    /// finishes loading.
+    var pendingOpenInlineURL: URL?
     var statusBarButtonsStack: UIStackView?
     var lastNavigationWasServerError = false
     var reconnectBackgroundTimer: Timer? {

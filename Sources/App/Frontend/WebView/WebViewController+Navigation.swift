@@ -28,6 +28,9 @@ extension WebViewController {
                     )
                 return
             }
+            // Remember the requested URL so it wins the cold-start race against `loadActiveURLIfNeeded()`,
+            // which would otherwise overwrite it with the default dashboard while the webview is still blank.
+            pendingOpenInlineURL = url
             load(request: URLRequest(url: url))
         } else {
             openURLInBrowser(url, self)

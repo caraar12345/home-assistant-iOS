@@ -38,6 +38,16 @@ extension WebViewController {
         }
     }
 
+    /// A URL requested via `open(inline:)` (notification tap / deep link) that targets the active server and so
+    /// should win over the default/restored URL. Used to prevent the cold-start race where the default dashboard
+    /// overwrites a notification/deep-link URL while the webview is still blank.
+    func prioritizedInlineURL(for webviewURL: URL) -> URL? {
+        guard let pendingOpenInlineURL, pendingOpenInlineURL.baseIsEqual(to: webviewURL) else {
+            return nil
+        }
+        return pendingOpenInlineURL
+    }
+
     @objc func loadActiveURLIfNeeded() {
         guard !loadActiveURLIfNeededInProgress else {
             Current.Log.info("loadActiveURLIfNeeded already in progress, skipping")
@@ -61,7 +71,9 @@ extension WebViewController {
 
             hideNoActiveURLError()
 
-            guard webView.url == nil || webView.url?.baseIsEqual(to: webviewURL) == false else {
+            guard webView.url == nil
+                || webView.url?.baseIsEqual(to: webviewURL) == false
+                || prioritizedInlineURL(for: webviewURL) != nil else {
                 // we also tell the webview -- maybe it failed to connect itself? -- to refresh if needed
                 webView.evaluateJavaScript("checkForMissingHassConnectionAndReload()", completionHandler: nil)
                 return
@@ -75,8 +87,10 @@ extension WebViewController {
             // if we aren't showing a url or it's an incorrect url, update it -- otherwise, leave it alone
             let request: URLRequest
 
-            if Current.settingsStore.restoreLastURL,
-               let initialURL, initialURL.baseIsEqual(to: webviewURL) {
+            if let inlineURL = prioritizedInlineURL(for: webviewURL) {
+                Current.Log.info("prioritizing pending inline url path: \(inlineURL.path)")
+                request = URLRequest(url: inlineURL)
+            } else if Current.settingsStore.restoreLastURL, let initialURL, initialURL.baseIsEqual(to: webviewURL) {
                 Current.Log.info("restoring initial url path: \(initialURL.path)")
                 request = URLRequest(url: initialURL)
             } else if let currentURL = webView.url, currentURL.path.count > 1 {

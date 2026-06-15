@@ -137,6 +137,30 @@ final class WebViewControllerTests: XCTestCase {
         XCTAssertNil(sut.latestLoadError)
     }
 
+    func testPrioritizedInlineURLReturnsNilWhenNoPendingURL() {
+        let sut = makeSUT()
+
+        XCTAssertNil(sut.prioritizedInlineURL(for: URL(string: "http://example.com:8123/")!))
+    }
+
+    func testPrioritizedInlineURLReturnsPendingURLWhenItTargetsActiveServer() {
+        let sut = makeSUT()
+        let pending = URL(string: "http://example.com:8123/frigate")!
+        sut.pendingOpenInlineURL = pending
+
+        XCTAssertEqual(
+            sut.prioritizedInlineURL(for: URL(string: "http://example.com:8123/")!),
+            pending
+        )
+    }
+
+    func testPrioritizedInlineURLReturnsNilWhenPendingTargetsDifferentServer() {
+        let sut = makeSUT()
+        sut.pendingOpenInlineURL = URL(string: "http://other.example.com:8123/frigate")!
+
+        XCTAssertNil(sut.prioritizedInlineURL(for: URL(string: "http://example.com:8123/")!))
+    }
+
     private func makeSUT() -> WebViewController {
         let sut = WebViewController(server: .fake())
         let containerView = UIView(frame: CGRect(x: 0, y: 0, width: 320, height: 640))

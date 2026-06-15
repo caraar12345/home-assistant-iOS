@@ -87,6 +87,12 @@ extension WebViewController {
         // in case the view appears again, don't reload
         initialURL = nil
 
+        // The pending inline URL (from a notification/deep link tap) has finished loading, so stop prioritizing it.
+        // This prevents later refreshes (e.g. returning from background) from force-navigating back to it.
+        if let pendingOpenInlineURL, webView.url?.isEqualIgnoringQueryParams(to: pendingOpenInlineURL) == true {
+            self.pendingOpenInlineURL = nil
+        }
+
         updateWebViewSettings(reason: .load)
     }
 
